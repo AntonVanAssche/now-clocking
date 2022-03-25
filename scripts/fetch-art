@@ -14,46 +14,37 @@ data_dir="$base_path/../data"
 data_file="$data_dir/$source-art"
 data_img="$data_dir/$source.png"
 
-if [ "$source" = spotify ]; then
+detect_playerctl() {
     if ! command -v playerctl >/dev/null; then
         echo "Missing playerctl!"
         exit 1
     fi
+}
 
-    url="$(playerctl -p spotify metadata mpris:artUrl | sed 's;https://open.spotify.com;http://i.scdn.co;g')"
-
-elif [ "$source" = spotifyd ]; then
-    if ! command -v playerctl >/dev/null; then
-        echo "Missing playerctl!"
-        exit 1
-    fi
-
-    url="$(playerctl -p spotifyd metadata mpris:artUrl)"
-elif [ "$source" = vlc ]; then
-    if ! command -v playerctl >/dev/null; then
-        echo "Missing playerctl!"
-        exit 1
-    fi
-
-    url="$(playerctl -p vlc metadata mpris:artUrl)"
-elif [ "$source" = Lollypop ]; then
-    if ! command -v playerctl >/dev/null; then
-        echo "Missing playerctl!"
-        exit 1
-    fi
-
-    url="$(playerctl -p Lollypop metadata mpris:artUrl)"
-elif [ "$source" = cmus ]; then
+detect_cmus_remote() {
     if ! command -v cmus-remote >/dev/null; then
         echo "Missing cmus-remote!"
         exit 1
     fi
+}
 
-    url="$(cmus-remote -Q 2>/dev/null | grep 'file' | cut -d " " -f 2-)"
-else
-    echo "Unknown source: '$source'"
-    exit 1
-fi
+case "$source" in
+    spotify) 
+        detect_playerctl
+        url="$(playerctl -p spotify metadata mpris:artUrl | sed 's;https://open.spotify.com;http://i.scdn.co;g')"
+        ;;
+    spotifyd| vlc| Lollypop)
+        detect_playerctl
+        url="$(playerctl -p "$source" metadata mpris:artUrl)"
+        ;;
+    cmus)
+        detect_cmus_remote
+        url="$(cmus-remote -Q 2>/dev/null | grep 'file' | cut -d " " -f 2-)"
+        ;;
+    *) 
+        echo "Unknown source: '$source'"
+        exit 1;;
+esac
 
 if [ ! -d "$data_dir" ]; then
     mkdir "$data_dir"
